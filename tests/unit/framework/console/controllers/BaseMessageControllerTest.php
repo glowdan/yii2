@@ -86,7 +86,7 @@ abstract class BaseMessageControllerTest extends TestCase
     protected function createSourceFile($content)
     {
         $fileName = $this->sourcePath . DIRECTORY_SEPARATOR . md5(uniqid()) . '.php';
-        file_put_contents($fileName, $content);
+        file_put_contents($fileName, "<?php\n" . $content);
         return $fileName;
     }
 
@@ -139,7 +139,7 @@ abstract class BaseMessageControllerTest extends TestCase
 
     public function testCreateTranslation()
     {
-        $category = 'test_category1';
+        $category = 'test.category1';
         $message = 'test message';
         $sourceFileContent = "Yii::t('{$category}', '{$message}');";
         $this->createSourceFile($sourceFileContent);
@@ -200,7 +200,7 @@ abstract class BaseMessageControllerTest extends TestCase
     /**
      * @depends testMerge
      */
-    public function testMarkObosoleteMessages()
+    public function testMarkObsoleteMessages()
     {
         $category = 'category';
 
@@ -223,7 +223,7 @@ abstract class BaseMessageControllerTest extends TestCase
     /**
      * @depends testMerge
      */
-    public function removeObosoleteMessages()
+    public function removeObsoleteMessages()
     {
         $category = 'category';
 

@@ -269,7 +269,7 @@ class View extends \yii\base\View
     /**
      * Registers the named asset bundle.
      * All dependent asset bundles will be registered.
-     * @param string $name the name of the asset bundle.
+     * @param string $name the class name of the asset bundle (without the leading backslash)
      * @param integer|null $position if set, this forces a minimum position for javascript files.
      * This will adjust depending assets javascript file position or fail if requirement can not be met.
      * If this is null, asset bundles position settings will not be changed.
@@ -380,7 +380,7 @@ class View extends \yii\base\View
         } else {
             $this->getAssetManager()->bundles[$key] = new AssetBundle([
                 'baseUrl' => '',
-                'css' => [ltrim($url, '/')],
+                'css' => [strncmp($url, '//', 2) === 0 ? $url : ltrim($url, '/')],
                 'cssOptions' => $options,
                 'depends' => (array) $depends,
             ]);
@@ -445,7 +445,7 @@ class View extends \yii\base\View
         } else {
             $this->getAssetManager()->bundles[$key] = new AssetBundle([
                 'baseUrl' => '',
-                'js' => [ltrim($url, '/')],
+                'js' => [strncmp($url, '//', 2) === 0 ? $url : ltrim($url, '/')],
                 'jsOptions' => $options,
                 'depends' => (array) $depends,
             ]);

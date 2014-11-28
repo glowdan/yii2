@@ -1,8 +1,23 @@
 Yii Framework 2 gii extension Change Log
 ========================================
 
-2.0.0-rc under development
---------------------------
+2.0.1 under development
+-----------------------
+
+- Bug #5745: Gii and debug modules may cause 404 exception when the route contains dashes (qiangxue)
+- Bug: Gii console command help information does not contain global options (qiangxue)
+- Enh #5613: Added `--overwrite` option to Gii console command to support overwriting all files (motin, qiangxue)
+
+
+2.0.0 October 12, 2014
+----------------------
+
+- Bug #5408: Gii console command incorrectly reports errors when there is actually no error (qiangxue)
+- Bug: Fixed table name regression caused by changed introduced in #4971 (samdark)
+
+
+2.0.0-rc September 27, 2014
+---------------------------
 
 - Bug #1263: Fixed the issue that Gii and Debug modules might be affected by incompatible asset manager configuration (qiangxue)
 - Bug #2314: Gii model generator does not generate correct relation type in some special case (qiangxue)

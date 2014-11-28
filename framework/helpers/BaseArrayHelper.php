@@ -81,7 +81,7 @@ class BaseArrayHelper
                         }
                     }
 
-                    return $recursive ? static::toArray($result) : $result;
+                    return $recursive ? static::toArray($result, $properties) : $result;
                 }
             }
             if ($object instanceof Arrayable) {
@@ -120,7 +120,11 @@ class BaseArrayHelper
             $next = array_shift($args);
             foreach ($next as $k => $v) {
                 if (is_integer($k)) {
-                    isset($res[$k]) ? $res[] = $v : $res[$k] = $v;
+                    if (isset($res[$k])) {
+                        $res[] = $v;
+                    } else {
+                        $res[$k] = $v;
+                    }
                 } elseif (is_array($v) && isset($res[$k]) && is_array($res[$k])) {
                     $res[$k] = self::merge($res[$k], $v);
                 } else {
@@ -458,7 +462,7 @@ class BaseArrayHelper
             if (is_string($value)) {
                 $d[$key] = htmlspecialchars($value, ENT_QUOTES, $charset);
             } elseif (is_array($value)) {
-                $d[$key] = static::htmlEncode($value, $charset);
+                $d[$key] = static::htmlEncode($value, $valuesOnly, $charset);
             }
         }
 

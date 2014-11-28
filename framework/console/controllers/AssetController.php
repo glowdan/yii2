@@ -16,6 +16,7 @@ use yii\helpers\VarDumper;
  * Allows you to combine and compress your JavaScript and CSS files.
  *
  * Usage:
+ *
  * 1. Create a configuration file using the `template` action:
  *
  *    yii asset/template /path/to/myapp/config.php
@@ -273,7 +274,9 @@ class AssetController extends Controller
                     return $bundleOrders[$a] > $bundleOrders[$b] ? 1 : -1;
                 }
             });
-            $target['class'] = $name;
+            if (!isset($target['class'])) {
+                $target['class'] = $name;
+            }
             $targets[$name] = Yii::createObject($target);
         }
 
@@ -349,7 +352,7 @@ class AssetController extends Controller
 
         foreach ($map as $bundle => $target) {
             $targets[$bundle] = Yii::createObject([
-                'class' => 'yii\\web\\AssetBundle',
+                'class' => strpos($bundle, '\\') !== false ? $bundle : 'yii\\web\\AssetBundle',
                 'depends' => [$target],
             ]);
         }
@@ -389,12 +392,21 @@ class AssetController extends Controller
     {
         $array = [];
         foreach ($targets as $name => $target) {
-            foreach (['basePath', 'baseUrl', 'js', 'css', 'depends'] as $prop) {
-                if (!empty($target->$prop)) {
-                    $array[$name][$prop] = $target->$prop;
-                } elseif (in_array($prop, ['js', 'css'])) {
-                    $array[$name][$prop] = [];
-                }
+            if (isset($this->targets[$name])) {
+                $array[$name] = [
+                    'class' => get_class($target),
+                    'basePath' => $this->targets[$name]['basePath'],
+                    'baseUrl' => $this->targets[$name]['baseUrl'],
+                    'js' => $target->js,
+                    'css' => $target->css,
+                ];
+            } else {
+                $array[$name] = [
+                    'sourcePath' => null,
+                    'js' => [],
+                    'css' => [],
+                    'depends' => $target->depends,
+                ];
             }
         }
         $array = VarDumper::export($array);
@@ -500,9 +512,10 @@ EOD;
     public function combineCssFiles($inputFiles, $outputFile)
     {
         $content = '';
+        $outputFilePath = dirname($this->findRealPath($outputFile));
         foreach ($inputFiles as $file) {
             $content .= "/*** BEGIN FILE: $file ***/\n"
-                . $this->adjustCssUrl(file_get_contents($file), dirname($file), dirname($outputFile))
+                . $this->adjustCssUrl(file_get_contents($file), dirname($this->findRealPath($file)), $outputFilePath)
                 . "/*** END FILE: $file ***/\n";
         }
         if (!file_put_contents($outputFile, $content)) {
@@ -519,6 +532,9 @@ EOD;
      */
     protected function adjustCssUrl($cssContent, $inputFilePath, $outputFilePath)
     {
+        $inputFilePath = str_replace('\\', '/', $inputFilePath);
+        $outputFilePath = str_replace('\\', '/', $outputFilePath);
+
         $sharedPathParts = [];
         $inputFilePathParts = explode('/', $inputFilePath);
         $inputFilePathPartsCount = count($inputFilePathParts);
@@ -535,18 +551,30 @@ EOD;
 
         $inputFileRelativePath = trim(str_replace($sharedPath, '', $inputFilePath), '/');
         $outputFileRelativePath = trim(str_replace($sharedPath, '', $outputFilePath), '/');
-        $inputFileRelativePathParts = explode('/', $inputFileRelativePath);
-        $outputFileRelativePathParts = explode('/', $outputFileRelativePath);
+        if (empty($inputFileRelativePath)) {
+            $inputFileRelativePathParts = [];
+        } else {
+            $inputFileRelativePathParts = explode('/', $inputFileRelativePath);
+        }
+        if (empty($outputFileRelativePath)) {
+            $outputFileRelativePathParts = [];
+        } else {
+            $outputFileRelativePathParts = explode('/', $outputFileRelativePath);
+        }
 
         $callback = function ($matches) use ($inputFileRelativePathParts, $outputFileRelativePathParts) {
             $fullMatch = $matches[0];
             $inputUrl = $matches[1];
 
-            if (preg_match('/^https?:\/\//is', $inputUrl) || preg_match('/^data:/is', $inputUrl)) {
+            if (strpos($inputUrl, '/') === 0 || preg_match('/^https?:\/\//is', $inputUrl) || preg_match('/^data:/is', $inputUrl)) {
                 return $fullMatch;
             }
 
-            $outputUrlParts = array_fill(0, count($outputFileRelativePathParts), '..');
+            if (empty($outputFileRelativePathParts)) {
+                $outputUrlParts = [];
+            } else {
+                $outputUrlParts = array_fill(0, count($outputFileRelativePathParts), '..');
+            }
             $outputUrlParts = array_merge($outputUrlParts, $inputFileRelativePathParts);
 
             if (strpos($inputUrl, '/') !== false) {
@@ -574,6 +602,7 @@ EOD;
     /**
      * Creates template of configuration file for [[actionCompress]].
      * @param string $configFile output file name.
+     * @return integer CLI exit code
      * @throws \yii\console\Exception on failure.
      */
     public function actionTemplate($configFile)
@@ -588,8 +617,9 @@ EOD;
  */
 
 // In the console environment, some path aliases may not exist. Please define these:
-//Yii::setAlias('@webroot', realpath(__DIR__ . '/../web'));
-//Yii::setAlias('@web', '/');
+// Yii::setAlias('@webroot', __DIR__ . '/../web');
+// Yii::setAlias('@web', '/');
+
 return [
     // Adjust command/callback for JavaScript files compressing:
     'jsCompressor' => {$jsCompressor},
@@ -597,22 +627,24 @@ return [
     'cssCompressor' => {$cssCompressor},
     // The list of asset bundles to compress:
     'bundles' => [
+        // 'app\assets\AppAsset',
         // 'yii\web\YiiAsset',
         // 'yii\web\JqueryAsset',
     ],
     // Asset bundle for compression output:
     'targets' => [
-        'app\assets\AllAsset' => [
-            'basePath' => 'path/to/web',
-            'baseUrl' => '',
+        'all' => [
+            'class' => 'yii\web\AssetBundle',
+            'basePath' => '@webroot/assets',
+            'baseUrl' => '@web/assets',
             'js' => 'js/all-{hash}.js',
             'css' => 'css/all-{hash}.css',
         ],
     ],
     // Asset manager configuration:
     'assetManager' => [
-        'basePath' => __DIR__,
-        'baseUrl' => '',
+        //'basePath' => '@webroot/assets',
+        //'baseUrl' => '@web/assets',
     ],
 ];
 EOD;
@@ -626,5 +658,27 @@ EOD;
         } else {
             echo "Configuration file template created at '{$configFile}'.\n\n";
         }
+    }
+
+    /**
+     * Returns canonicalized absolute pathname.
+     * Unlike regular `realpath()` this method does not expand symlinks and does not check path existence.
+     * @param string $path raw path
+     * @return string canonicalized absolute pathname
+     */
+    private function findRealPath($path)
+    {
+        $path = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+        $pathParts = explode(DIRECTORY_SEPARATOR, $path);
+
+        $realPathParts = [];
+        foreach ($pathParts as $pathPart) {
+            if ($pathPart === '..') {
+                array_pop($realPathParts);
+            } else {
+                array_push($realPathParts, $pathPart);
+            }
+        }
+        return implode(DIRECTORY_SEPARATOR, $realPathParts);
     }
 }

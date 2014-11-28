@@ -319,7 +319,7 @@ class Connection extends Component
         $body = '';
 
         $options = [
-            CURLOPT_USERAGENT      => 'Yii Framework 2 ' . __CLASS__,
+            CURLOPT_USERAGENT      => 'Yii Framework ' . Yii::getVersion() . __CLASS__,
             CURLOPT_RETURNTRANSFER => false,
             CURLOPT_HEADER         => false,
             // http://www.php.net/manual/en/function.curl-setopt.php#82418
@@ -369,7 +369,7 @@ class Connection extends Component
             $profile = false;
         }
 
-        Yii::trace("Sending request to elasticsearch node: $url\n$requestBody", __METHOD__);
+        Yii::trace("Sending request to elasticsearch node: $method $url\n$requestBody", __METHOD__);
         if ($profile !== false) {
             Yii::beginProfile($profile, __METHOD__);
         }

@@ -360,6 +360,18 @@ EOL;
             ],
             [
                 "@font-face {
+                src: url('../fonts/glyphicons-halflings-regular.eot');
+                src: url('../fonts/glyphicons-halflings-regular.eot?#iefix') format('embedded-opentype');
+                }",
+                '/test/base/path/assets/input/css',
+                '/test/base/path/assets',
+                "@font-face {
+                src: url('input/fonts/glyphicons-halflings-regular.eot');
+                src: url('input/fonts/glyphicons-halflings-regular.eot?#iefix') format('embedded-opentype');
+                }",
+            ],
+            [
+                "@font-face {
                 src: url(data:application/x-font-ttf;charset=utf-8;base64,AAEAAAALAIAAAwAwT==) format('truetype');
                 }",
                 '/test/base/path/assets/input/css',
@@ -367,6 +379,18 @@ EOL;
                 "@font-face {
                 src: url(data:application/x-font-ttf;charset=utf-8;base64,AAEAAAALAIAAAwAwT==) format('truetype');
                 }",
+            ],
+            [
+                '.published-same-dir-class {background-image: url(published_same_dir.png);}',
+                'C:\test\base\path\assets\input',
+                'C:\test\base\path\assets\output',
+                '.published-same-dir-class {background-image: url(../input/published_same_dir.png);}',
+            ],
+            [
+                '.static-root-relative-class {background-image: url(\'/images/static_root_relative.png\');}',
+                '/test/base/path/css',
+                '/test/base/path/assets/output',
+                '.static-root-relative-class {background-image: url(\'/images/static_root_relative.png\');}',
             ],
         ];
     }
@@ -384,5 +408,52 @@ EOL;
         $adjustedCssContent = $this->invokeAssetControllerMethod('adjustCssUrl', [$cssContent, $inputFilePath, $outputFilePath]);
 
         $this->assertEquals($expectedCssContent, $adjustedCssContent, 'Unable to adjust CSS correctly!');
+    }
+
+    /**
+     * Data provider for [[testFindRealPath()]]
+     * @return array test data
+     */
+    public function findRealPathDataProvider()
+    {
+        return [
+            [
+                '/linux/absolute/path',
+                '/linux/absolute/path',
+            ],
+            [
+                '/linux/up/../path',
+                '/linux/path',
+            ],
+            [
+                '/linux/twice/up/../../path',
+                '/linux/path',
+            ],
+            [
+                '/linux/../mix/up/../path',
+                '/mix/path',
+            ],
+            [
+                'C:\\windows\\absolute\\path',
+                'C:\\windows\\absolute\\path',
+            ],
+            [
+                'C:\\windows\\up\\..\\path',
+                'C:\\windows\\path',
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider findRealPathDataProvider
+     *
+     * @param string $sourcePath
+     * @param string $expectedRealPath
+     */
+    public function testFindRealPath($sourcePath, $expectedRealPath)
+    {
+        $expectedRealPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $expectedRealPath);
+        $realPath = $this->invokeAssetControllerMethod('findRealPath', [$sourcePath]);
+        $this->assertEquals($expectedRealPath, $realPath);
     }
 }
